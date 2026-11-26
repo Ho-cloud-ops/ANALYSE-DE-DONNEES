@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard Data Science</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1c2333;--muted:#667085;--accent:#3b6df0;--line:#e3e7ef;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#182033;--ink:#e8ecf5;--muted:#9aa5bd;--accent:#6e9bff;--line:#2a3550;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#182033;--ink:#e8ecf5;--muted:#9aa5bd;--accent:#6e9bff;--line:#2a3550;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;margin:0}h2{font-size:1.05rem;margin:0 0 10px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sub{color:var(--muted);font-size:.9rem}
+button,select,input[type=file]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button.p{background:var(--accent);color:#fff;border:0;cursor:pointer}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;min-width:0}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.kpi b{display:block;font-size:1.5rem;color:var(--accent)}.kpi span{color:var(--muted);font-size:.82rem}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600}
+.ctl{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+canvas{max-height:300px}
+.note{color:var(--muted);font-size:.85rem;margin-top:6px}
+#interp h3,#concl h3{font-size:.95rem;margin:14px 0 4px;color:var(--accent)}#interp ul,#concl ul{margin:0;padding-left:20px}#interp li,#concl li{margin-bottom:4px}
+#app{display:none}
+@media print{
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{--bg:#fff;--card:#fff;--ink:#000;--muted:#444;--accent:#1f4fd8;--line:#ccc;color-scheme:light}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{background:#fff}.top,#add{display:none!important}#ph{display:block!important;margin-bottom:12px;border-bottom:2px solid #1f4fd8;padding-bottom:6px}
+main{max-width:none;padding:0}.card,.kpi{break-inside:avoid;page-break-inside:avoid}.grid{grid-template-columns:1fr 1fr}.tw{overflow:visible}
+canvas{max-width:100%;max-height:260px!important}@page{margin:14mm}}
+#ph{display:none}
+.mn{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}.mn label{font-size:.82rem;color:var(--muted);margin:0}.mn textarea{width:100%;min-height:70px;resize:vertical;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:4px}.mn .pt{display:none}
+#pmsg{margin:6px 0;color:var(--accent)}#pmsg:empty{display:none}
+@media print{.mn textarea,#pmsg{display:none!important}.mn .pt{display:block;min-height:70px;border:1px solid #999;border-radius:6px;padding:6px;white-space:pre-wrap;margin-top:4px}}
+</style>
+</head>
+<body>
+<main>
+<div id="ph"><h1>📊 Rapport d’analyse de données</h1><div class="sub" id="phs"></div></div>
+<div class="top">
+  <div><h1>📊 Dashboard Data Science</h1><div class="sub">Importe un CSV : l’analyse s’adapte automatiquement. Tout reste dans ton navigateur.</div></div>
+  <div class="ctl"><input type="file" id="f" accept=".csv,.txt,.tsv"><button class="p" id="demo" type="button">Données de démo</button><button id="pdf" type="button">🖨️ Imprimer / PDF</button><button id="exp" type="button">⬇️ Exporter le rapport (HTML)</button><button id="clr" type="button">🧹 Effacer mes notes</button></div>
+</div>
+<div id="pmsg"></div>
+<div id="app">
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h2>Qualité des données par colonne</h2><div class="tw" id="quality"></div><div class="note">Aberrantes : règle IQR (1,5×IQR) et score Z (|z|&gt;3).</div></div>
+  <div class="card"><h2>Résumé statistique (variables numériques)</h2><div class="tw" id="desc"></div></div>
+  <div class="grid">
+    <div class="card"><h2>Variable cible</h2><div class="ctl"><select id="tgt"></select><select id="tt"><option value="bar">Barres</option><option value="pie">Circulaire</option></select></div><canvas id="c1"></canvas><div class="note" id="imb"></div></div>
+    <div class="card"><h2>Analyse univariée</h2><div class="ctl"><select id="uni"></select><select id="ut"><option value="bar">Barres</option><option value="pie">Circulaire (catégorielle)</option></select></div><canvas id="c2"></canvas><div class="note" id="un"></div></div>
+    <div class="card"><h2>Analyse bivariée (vs cible)</h2><div class="ctl"><select id="biv"></select></div><canvas id="c3"></canvas><div class="note" id="bn"></div></div>
+  </div>
+  <div class="card"><h2>Diagrammes de comparaison <span class="sub">(jusqu’à 5)</span></h2><div class="ctl"><button class="p" id="add" type="button">+ Ajouter un diagramme</button><span class="sub">Pour chacun : catégorie (X), mesure (Y), calcul et type de graphique</span></div><div class="grid" id="cmp"></div></div>
+  <div class="card"><h2>Matrice de corrélation</h2><div class="tw" id="corr"></div></div>
+  <div class="card"><h2>🧠 Interprétation automatique</h2><div id="interp"></div></div>
+  <div class="card"><h2>✅ Conclusion et recommandations</h2><div id="concl"></div></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const NA=v=>v===null||v===undefined||v===""||(typeof v==="string"&&["NA","NaN","null","N/A"].includes(v.trim()));
+const PAL=["#3b6df0","#f0803b","#2fb67e","#d6455d","#9b59d6","#e0b02f","#2fb5c9","#8a8f9e"];
+let rows=[],cols=[],num=[],cat=[],ch={};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function q(a,p){const i=(a.length-1)*p,l=Math.floor(i),h=Math.ceil(i);return a[l]+(a[h]-a[l])*(i-l)}
+const f2=x=>x==null||isNaN(x)?"–":Math.abs(x)>=1000?Math.round(x).toLocaleString("fr-FR"):(+x.toFixed(2)).toLocaleString("fr-FR");
+const vals=c=>rows.map(r=>r[c]).filter(v=>!NA(v));
+function load(data){
+  rows=data;cols=Object.keys(rows[0]||{});
+  num=cols.filter(c=>{const v=vals(c);return v.length&&v.every(x=>typeof x==="number")});
+  cat=cols.filter(c=>!num.includes(c));
+  $("app").style.display="block";
+  const opt=(id,list)=>$(id).innerHTML=list.map(c=>`<option>${c}</option>`).join("");
+  opt("uni",cols);opt("biv",cols);
+  const tc=cols.filter(c=>new Set(vals(c)).size<=10);
+  opt("tgt",tc.length?tc:cols);
+  const guess=tc.find(c=>/^(y|target|class|label|survived|churn|exited)$/i.test(c))||tc[tc.length-1];
+  if(guess)$("tgt").value=guess;
+  $("biv").value=cols.find(c=>c!==$("tgt").value)||cols[0];
+  Chart.defaults.color=css("--muted");Chart.defaults.borderColor=css("--line");
+  kpis();quality();desc();corr();drawTarget();drawUni();drawBiv();resetCmp();report();
+}
+function kpis(){
+  const n=rows.length,tot=n*cols.length;
+  const miss=cols.reduce((s,c)=>s+n-vals(c).length,0);
+  const seen=new Set();let dup=0;rows.forEach(r=>{const k=JSON.stringify(r);seen.has(k)?dup++:seen.add(k)});
+  const k=[[n.toLocaleString("fr-FR"),"lignes"],[cols.length,"colonnes"],[num.length,"numériques"],[cat.length,"catégorielles"],[f2(100*miss/tot)+" %","valeurs manquantes"],[dup,"doublons"]];
+  $("kpis").innerHTML=k.map(([a,b])=>`<div class="kpi"><b>${a}</b><span>${b}</span></div>`).join("");
+}
+function quality(){
+  let h="<table><tr><th>Colonne</th><th>Type</th><th>Manquants</th><th>Uniques</th><th>Aberr. IQR</th><th>Aberr. Z</th></tr>";
+  cols.forEach(c=>{
+    const v=vals(c),m=rows.length-v.length;let iq="–",z="–";
+    if(num.includes(c)&&v.length>3){
+      const s=[...v].sort((a,b)=>a-b),Q1=q(s,.25),Q3=q(s,.75),I=Q3-Q1;
+      iq=v.filter(x=>x<Q1-1.5*I||x>Q3+1.5*I).length;
+      const mu=v.reduce((a,b)=>a+b,0)/v.length,sd=Math.sqrt(v.reduce((a,b)=>a+(b-mu)**2,0)/v.length);
+      z=sd?v.filter(x=>Math.abs((x-mu)/sd)>3).length:0;
+    }
+    h+=`<tr><td>${c}</td><td>${num.includes(c)?"numérique":"catégorielle"}</td><td>${m} (${f2(100*m/rows.length)} %)</td><td>${new Set(v).size}</td><td>${iq}</td><td>${z}</td></tr>`;
+  });
+  $("quality").innerHTML=h+"</table>";
+}
+function desc(){
+  if(!num.length){$("desc").textContent="Aucune colonne numérique.";return}
+  let h="<table><tr><th>Variable</th><th>Moyenne</th><th>Écart-type</th><th>Min</th><th>Q1</th><th>Médiane</th><th>Q3</th><th>Max</th></tr>";
+  num.forEach(c=>{const s=vals(c).sort((a,b)=>a-b),mu=s.reduce((a,b)=>a+b,0)/s.length,sd=Math.sqrt(s.reduce((a,b)=>a+(b-mu)**2,0)/(s.length-1||1));
+    h+=`<tr><td>${c}</td>${[mu,sd,s[0],q(s,.25),q(s,.5),q(s,.75),s[s.length-1]].map(x=>`<td>${f2(x)}</td>`).join("")}</tr>`});
+  $("desc").innerHTML=h+"</table>";
+}
+function pearson(a,b){
+  const p=rows.filter(r=>!NA(r[a])&&!NA(r[b])),n=p.length;if(n<3)return NaN;
+  const x=p.map(r=>r[a]),y=p.map(r=>r[b]),mx=x.reduce((s,v)=>s+v,0)/n,my=y.reduce((s,v)=>s+v,0)/n;
+  let sxy=0,sx=0,sy=0;for(let i=0;i<n;i++){sxy+=(x[i]-mx)*(y[i]-my);sx+=(x[i]-mx)**2;sy+=(y[i]-my)**2}
+  return sx&&sy?sxy/Math.sqrt(sx*sy):NaN;
+}
+function corr(){
+  const c=num.slice(0,14);
+  if(c.length<2){$("corr").textContent="Il faut au moins 2 colonnes numériques.";return}
+  let h="<table><tr><th></th>"+c.map(x=>`<th>${x}</th>`).join("")+"</tr>";
+  c.forEach(a=>{h+=`<tr><td>${a}</td>`+c.map(b=>{const r=a===b?1:pearson(a,b);
+    const bg=isNaN(r)?"transparent":`rgba(${r>0?"59,109,240":"214,69,93"},${(Math.abs(r)*.75).toFixed(2)})`;
+    return `<td style="background:${bg};text-align:center">${isNaN(r)?"–":r.toFixed(2)}</td>`}).join("")+"</tr>"});
+  $("corr").innerHTML=h+"</table>";
+}
+function mk(id,cfg){if(ch[id])ch[id].destroy();ch[id]=new Chart($(id),cfg)}
+function counts(c,max=15){const m={};vals(c).forEach(v=>m[v]=(m[v]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,max)}
+function drawTarget(){
+  const c=$("tgt").value,e=counts(c,10);
+  const T=$("tt").value;mk("c1",{type:T,data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>x[1]),backgroundColor:e.map((_,i)=>PAL[i%PAL.length]),borderColor:css("--card")}]},options:{plugins:{legend:{display:T==="pie"}}}});
+  const t=e.reduce((s,x)=>s+x[1],0),top=e[0]?e[0][1]/t:0;
+  $("imb").textContent=top>.7?`⚠️ Jeu déséquilibré : la classe « ${e[0][0]} » représente ${f2(100*top)} %. Privilégie rappel, F1-score et rééchantillonnage.`:"Répartition plutôt équilibrée.";
+  drawBiv();
+}
+function drawUni(){
+  const c=$("uni").value;
+  if(num.includes(c)){
+    const v=vals(c),mn=Math.min(...v),mx=Math.max(...v),k=20,w=(mx-mn)/k||1,b=Array(k).fill(0);
+    v.forEach(x=>b[Math.min(k-1,Math.floor((x-mn)/w))]++);
+    const s=stats(c),sk=s.sd?(s.mu-s.med)/s.sd:0;$('un').textContent=`Moyenne ${f2(s.mu)}, médiane ${f2(s.med)} : ${Math.abs(sk)<.15?'distribution plutôt symétrique':sk>0?'asymétrie à droite (quelques valeurs élevées tirent la moyenne)':'asymétrie à gauche (quelques valeurs faibles tirent la moyenne)'}.`;
+    mk("c2",{type:"bar",data:{labels:b.map((_,i)=>f2(mn+i*w)),datasets:[{label:c,data:b,backgroundColor:PAL[0],barPercentage:1,categoryPercentage:1}]},options:{plugins:{legend:{display:false}}}});
+  }else{
+    const e=counts(c);
+    const P=$("ut").value==="pie";$('un').textContent=`Modalité dominante : « ${e[0][0]} » (${f2(100*e[0][1]/vals(c).length)} %) ; ${new Set(vals(c)).size} modalités au total.`;mk("c2",{type:P?"pie":"bar",data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>x[1]),backgroundColor:P?e.map((_,i)=>PAL[i%PAL.length]):PAL[0],borderColor:css("--card")}]},options:{plugins:{legend:{display:P}}}});
+  }
+}
+function drawBiv(){
+  const c=$("biv").value,t=$("tgt").value;
+  if(c===t){$("bn").textContent="Choisis une variable différente de la cible.";return}
+  const cl=counts(t,6).map(x=>x[0]);
+  if(num.includes(c)){
+    const mean=k=>{const v=rows.filter(r=>String(r[t])===String(k)&&!NA(r[c])).map(r=>r[c]);return v.reduce((a,b)=>a+b,0)/(v.length||1)};
+    mk("c3",{type:"bar",data:{labels:cl,datasets:[{label:"Moyenne de "+c,data:cl.map(mean),backgroundColor:PAL}]},options:{plugins:{legend:{display:false}}}});
+    const mv=cl.map(mean),iM=mv.indexOf(Math.max(...mv));$('bn').textContent=`La moyenne de ${c} est la plus élevée pour « ${cl[iM]} » (${f2(mv[iM])}) et la plus faible à ${f2(Math.min(...mv))} : ${c} ${Math.max(...mv)>Math.min(...mv)*1.2||Math.min(...mv)<=0?'semble discriminante':'varie peu'} selon la cible.`;
+  }else{
+    const cats=counts(c,12).map(x=>x[0]);
+    const ds=cl.map((k,i)=>({label:String(k),backgroundColor:PAL[i%PAL.length],data:cats.map(g=>{
+      const r=rows.filter(x=>String(x[c])===String(g));return r.length?100*r.filter(x=>String(x[t])===String(k)).length/r.length:0})}));
+    mk("c3",{type:"bar",data:{labels:cats,datasets:ds},options:{scales:{x:{stacked:true},y:{stacked:true,max:100,title:{display:true,text:"%"}}}}});
+    const d0=ds[0].data,iM=d0.indexOf(Math.max(...d0));$('bn').textContent=`Pour « ${cl[0]} », la part varie de ${f2(Math.min(...d0))} % à ${f2(Math.max(...d0))} % selon ${c} ; maximum pour « ${cats[iM]} ».`;
+  }
+}
+function stats(c){const v=vals(c).sort((a,b)=>a-b),n=v.length,mu=v.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(v.reduce((a,b)=>a+(b-mu)**2,0)/n);return{v,n,mu,sd,med:q(v,.5)}}
+function ul(a){return a.length?'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>':"<p class='sub'>Rien à signaler.</p>"}
+function report(){
+ const n=rows.length,t=$('tgt').value,names=a=>a.map(x=>'<b>'+x+'</b>').join(', ');
+ const miss=cols.map(c=>[c,100*(n-vals(c).length)/n]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+ const seen=new Set();let dup=0;rows.forEach(r=>{const k=JSON.stringify(r);seen.has(k)?dup++:seen.add(k)});
+ const out=num.map(c=>{const s=vals(c).sort((a,b)=>a-b),Q1=q(s,.25),Q3=q(s,.75),I=Q3-Q1;return[c,100*s.filter(x=>x<Q1-1.5*I||x>Q3+1.5*I).length/s.length]}).filter(x=>x[1]>=1).sort((a,b)=>b[1]-a[1]).slice(0,3);
+ const skew=num.map(c=>{const s=stats(c);return[c,s.sd?(s.mu-s.med)/s.sd:0]}).filter(x=>Math.abs(x[1])>.3).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+ const Q=[`Le jeu contient <b>${n.toLocaleString('fr-FR')}</b> lignes et <b>${cols.length}</b> colonnes (${num.length} numériques, ${cat.length} catégorielles).`];
+ Q.push(miss.length?`Valeurs manquantes : ${miss.slice(0,3).map(m=>`<b>${m[0]}</b> (${f2(m[1])} %)`).join(', ')}${miss.length>3?' …':''}. ${miss[0][1]>30?'Une colonne dépasse 30 % : envisager de la supprimer.':'Taux faible : une imputation (médiane / mode) suffit.'}`:'Aucune valeur manquante.');
+ Q.push(dup?`<b>${dup}</b> doublon(s) détecté(s) : à supprimer pour ne pas biaiser les modèles.`:'Aucun doublon.');
+ if(out.length)Q.push(`Valeurs aberrantes (IQR) surtout dans ${out.map(o=>`<b>${o[0]}</b> (${f2(o[1])} %)`).join(', ')} : à vérifier, elles peuvent être légitimes (gros montants) ou erronées.`);
+ if(skew.length)Q.push(`Distributions asymétriques : ${names(skew.map(s=>s[0]))} (moyenne ≠ médiane). Une transformation log peut aider.`);
+ const cl=counts(t,10),tot=cl.reduce((s,x)=>s+x[1],0),T=[],A=[];
+ T.push(`Cible <b>${t}</b> : ${cl.map(x=>`« ${x[0]} » ${f2(100*x[1]/tot)} %`).join(', ')}.`);
+ const imb=cl.length>1&&cl[0][1]/tot>.7;
+ T.push(imb?'Le jeu est <b>déséquilibré</b> : privilégier rappel, F1-score et rééchantillonnage plutôt que la seule exactitude.':'Les classes sont assez équilibrées.');
+ const pos=String((cl.find(x=>/^(yes|oui|1|true)$/i.test(String(x[0])))||cl[cl.length-1])[0]);
+ if(cl.length>=2){cols.filter(c=>c!==t).forEach(c=>{
+  const isP=r=>String(r[t])===pos;
+  if(num.includes(c)){const a=rows.filter(r=>isP(r)&&!NA(r[c])).map(r=>r[c]),b=rows.filter(r=>!isP(r)&&!NA(r[c])).map(r=>r[c]);
+   if(a.length<5||b.length<5)return;const m1=a.reduce((x,y)=>x+y,0)/a.length,m0=b.reduce((x,y)=>x+y,0)/b.length,sd=stats(c).sd;if(!sd)return;
+   const d=(m1-m0)/sd;A.push({s:Math.abs(d)/.5,c,txt:`<b>${c}</b> : moyenne ${f2(m1)} pour « ${pos} » contre ${f2(m0)} pour les autres (écart ${Math.abs(d)>=.5?'fort':'modéré'}).`});
+  }else{const g={};rows.forEach(r=>{if(!NA(r[c])){g[r[c]]=g[r[c]]||[0,0];g[r[c]][1]++;if(isP(r))g[r[c]][0]++}});
+   const e=Object.entries(g).filter(x=>x[1][1]>=20).map(x=>[x[0],100*x[1][0]/x[1][1]]).sort((a,b)=>a[1]-b[1]);
+   if(e.length<2||e.length>50)return;const lo=e[0],hi=e[e.length-1],sp=hi[1]-lo[1];
+   A.push({s:sp/20,c,txt:`<b>${c}</b> : le taux de « ${pos} » varie de ${f2(lo[1])} % (${lo[0]}) à ${f2(hi[1])} % (${hi[0]}) selon la modalité (écart ${sp>=20?'fort':'modéré'}).`});}
+ })}
+ A.sort((a,b)=>b.s-a.s);const top=A.filter(a=>a.s>=.4).slice(0,5);
+ const P=[],cn=num.filter(c=>c!==t).slice(0,14);
+ for(let i=0;i<cn.length;i++)for(let j=i+1;j<cn.length;j++){const r=pearson(cn[i],cn[j]);if(Math.abs(r)>=.5)P.push([cn[i],cn[j],r])}
+ P.sort((a,b)=>Math.abs(b[2])-Math.abs(a[2]));
+ const R=P.slice(0,4).map(p=>`<b>${p[0]}</b> et <b>${p[1]}</b> : corrélation ${p[2]>0?'positive':'négative'} ${Math.abs(p[2])>=.8?'très forte (redondance possible)':'marquée'} (r = ${p[2].toFixed(2)}).`);
+ $('interp').innerHTML='<h3>Qualité des données</h3>'+ul(Q)+'<h3>Variable cible</h3>'+ul(T)+'<h3>Variables les plus liées à la cible</h3>'+ul(top.map(a=>a.txt))+'<h3>Relations entre variables numériques</h3>'+ul(R)+"<p class='note'>Interprétations générées automatiquement par des règles statistiques simples ; corrélation n’implique pas causalité.</p>";
+ const S=[`Après exploration, le jeu (${n.toLocaleString('fr-FR')} lignes) est ${miss.length||dup?'exploitable après nettoyage':'propre et exploitable'}.`];
+ if(top.length)S.push(`Variables les plus liées à <b>${t}</b> : ${names(top.slice(0,4).map(a=>a.c))}.`);
+ S.push(imb?'La cible est déséquilibrée, ce qui impose des métriques adaptées.':'La cible est suffisamment équilibrée.');
+ if(P.length)S.push(`${P.length} paire(s) de variables numériques fortement liées entre elles.`);
+ const Rec=[];
+ if(miss.length)Rec.push('Imputer les valeurs manquantes (médiane pour le numérique, mode pour le catégoriel).');
+ if(dup)Rec.push('Supprimer les doublons avec <code>drop_duplicates()</code>.');
+ if(out.length)Rec.push('Examiner les valeurs aberrantes avant de les conserver ou de les corriger.');
+ if(cat.length)Rec.push(`Encoder les ${cat.length-(cat.includes(t)?1:0)} variable(s) catégorielle(s) (One-Hot pour le nominal, Label pour l’ordinal), puis normaliser les variables numériques.`);
+ if(top.length)Rec.push(`Concentrer l’action métier et le ciblage sur ${names(top.slice(0,3).map(a=>a.c))}.`);
+ if(P.some(p=>Math.abs(p[2])>=.8))Rec.push('Retirer ou combiner les variables redondantes (|r| ≥ 0,8).');
+ Rec.push(imb?'Entraîner un modèle (régression logistique, Random Forest) avec rééquilibrage, évalué par F1-score et AUC-ROC.':'Entraîner un modèle de classification (régression logistique, Random Forest), évalué par précision, rappel et F1-score.');
+ $('concl').innerHTML='<h3>Synthèse</h3>'+ul(S)+'<h3>Recommandations</h3>'+ul(Rec)+'<h3>Perspectives</h3>'+ul(['Comparer plusieurs modèles supervisés (régression logistique, Random Forest, XGBoost).','Valider par validation croisée, puis déployer le modèle dans un outil de ciblage.']);
+}
+let nc=0;
+function resetCmp(){["m1","m2","m3","m4","m5"].forEach(i=>{if(ch[i]){ch[i].destroy();delete ch[i]}});$("cmp").innerHTML="";nc=0;$("add").disabled=false;$("add").textContent="+ Ajouter un diagramme";addCmp();addCmp()}
+function addCmp(){
+  if(nc>=5)return;nc++;const id="m"+nc,d=document.createElement("div");d.className="card";d.style.margin="0";
+  const o=l=>l.map(c=>`<option>${c}</option>`).join("");
+  d.innerHTML=`<div class="ctl"><select class="x">${o(cols)}</select><select class="y"><option value="__n">(nombre de lignes)</option>${o(num)}</select><select class="a"><option value="mean">moyenne</option><option value="sum">somme</option><option value="count">nombre</option></select><select class="t"><option value="bar">Barres</option><option value="line">Courbe</option><option value="pie">Circulaire</option><option value="doughnut">Anneau</option></select></div><canvas id="${id}"></canvas><div class="note" id="${id}n"></div>`;
+  $("cmp").appendChild(d);
+  const xs=cat.length?cat:cols;d.querySelector(".x").value=xs[(nc-1)%xs.length];
+  if(num.length)d.querySelector(".y").value=num[(nc-1)%num.length];
+  d.querySelector(".t").value=["bar","pie","line","doughnut","bar"][nc-1];
+  d.querySelectorAll("select").forEach(s=>s.onchange=()=>drawCmp(d,id));drawCmp(d,id);addNotes();
+  $("add").textContent=nc>=5?"Maximum atteint (5/5)":`+ Ajouter un diagramme (${nc}/5)`;if(nc>=5)$("add").disabled=true;
+}
+function drawCmp(d,id){
+  const x=d.querySelector(".x").value,y=d.querySelector(".y").value,a=d.querySelector(".a").value,t=d.querySelector(".t").value;
+  let key=r=>r[x],binned=false;
+  if(num.includes(x)&&new Set(vals(x)).size>12){const v=vals(x),mn=Math.min(...v),mx=Math.max(...v),w=(mx-mn)/8||1;binned=true;
+    key=r=>{if(NA(r[x]))return null;const i=Math.min(7,Math.floor((r[x]-mn)/w));return i+"|"+f2(mn+i*w)+" – "+f2(mn+(i+1)*w)}}
+  const g={};rows.forEach(r=>{const k=key(r);if(NA(k))return;(g[k]=g[k]||[]).push(r)});
+  let ks=Object.keys(g);ks=binned?ks.sort():ks.sort((p,q)=>g[q].length-g[p].length).slice(0,12);
+  const val=k=>{const R=g[k];if(a==="count"||y==="__n")return R.length;const v=R.map(r=>r[y]).filter(z=>!NA(z)),s=v.reduce((p,c)=>p+c,0);return a==="sum"?s:s/(v.length||1)};
+  const P=t==="pie"||t==="doughnut",lab=binned?ks.map(k=>k.split("|")[1]):ks;
+  const nm=y==="__n"||a==="count"?"Nombre de lignes":(a==="sum"?"Somme de ":"Moyenne de ")+y;
+  mk(id,{type:t,data:{labels:lab,datasets:[{label:nm,data:ks.map(val),backgroundColor:P?ks.map((_,i)=>PAL[i%PAL.length]):PAL[0],borderColor:P?css("--card"):PAL[0],tension:.3}]},options:{plugins:{legend:{display:P},title:{display:true,text:nm+" par "+x}}}});
+  const D=ks.map(val),iM=D.indexOf(Math.max(...D)),im=D.indexOf(Math.min(...D)),sm=D.reduce((p,c)=>p+c,0);
+  $(id+'n').textContent=`Lecture : « ${lab[iM]} » est le plus élevé (${f2(D[iM])}${P&&sm?', soit '+f2(100*D[iM]/sm)+' %':''}) ; « ${lab[im]} » le plus faible (${f2(D[im])}).`;
+}
+$("tt").onchange=drawTarget;$("ut").onchange=drawUni;$("add").onclick=addCmp;
+$("tgt").onchange=()=>{drawTarget();report()};$("uni").onchange=drawUni;$("biv").onchange=drawBiv;
+$("f").onchange=e=>{const fl=e.target.files[0];if(!fl)return;
+  fname=fl.name;Papa.parse(fl,{header:true,dynamicTyping:true,skipEmptyLines:true,complete:r=>load(r.data)})};
+$("demo").onclick=()=>{fname='Données de démo';
+  const jobs=["cadre","ouvrier","étudiant","retraité","employé"],d=[];
+  for(let i=0;i<400;i++){const age=20+Math.floor(Math.random()*45),dur=Math.floor(Math.random()*900),job=jobs[i%5];
+    const p=Math.min(.9,.03+dur/2500+(job==="retraité"?.1:0));
+    d.push({age,job,balance:Math.round(Math.random()*5000-500),duration:dur,campaign:1+Math.floor(Math.random()*6),y:Math.random()<p?"yes":"no"})}
+  load(d)};
+
+let fname='';
+const pcol=()=>{Chart.defaults.color='#333';Chart.defaults.borderColor='#ccc';Object.values(ch).forEach(c=>c.update('none'))};
+addEventListener('beforeprint',()=>{$('phs').textContent=(rows.length?'Fichier : '+(fname||'données importées')+' · '+rows.length.toLocaleString('fr-FR')+' lignes × '+cols.length+' colonnes · ':'')+new Date().toLocaleDateString('fr-FR');mirror();pcol()});
+addEventListener('afterprint',()=>{Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');Object.values(ch).forEach(c=>c.update('none'))});
+
+function addNotes(){document.querySelectorAll('.card:not(.hn)').forEach(c=>{c.classList.add('hn');c.insertAdjacentHTML('beforeend','<div class="mn"><label>✍️ Mon interprétation</label><textarea rows="3" placeholder="Écris ici ton interprétation de ce résultat…"></textarea><div class="pt"></div></div>')})}
+const mirror=()=>document.querySelectorAll('.mn').forEach(m=>m.querySelector('.pt').textContent=m.querySelector('textarea').value);
+const rcol=()=>{Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');Object.values(ch).forEach(c=>c.update('none'))};
+const hdr=()=>(rows.length?'Fichier : '+(fname||'données importées')+' · '+rows.length.toLocaleString('fr-FR')+' lignes × '+cols.length+' colonnes · ':'')+new Date().toLocaleDateString('fr-FR');
+const msg=t=>{$('pmsg').textContent=t};
+$('pdf').onclick=()=>{if(!rows.length){msg('Importe d’abord un fichier (ou clique sur « Données de démo »), puis relance l’impression.');return}msg('');try{window.print()}catch(e){msg('Impression bloquée ici : utilise « Exporter le rapport » ou ouvre ce fichier directement dans Chrome, Edge ou Firefox.')}if(window.self!==window.top)msg('Si rien ne s’ouvre, la page est dans un aperçu qui bloque l’impression : enregistre le fichier sur ton ordinateur et ouvre-le dans ton navigateur, ou utilise « Exporter le rapport ».')};
+$('clr').onclick=()=>document.querySelectorAll('.mn textarea').forEach(t=>t.value='');
+$('exp').onclick=()=>{if(!rows.length){msg('Importe d’abord des données avant d’exporter le rapport.');return}
+mirror();pcol();const A=$('app'),cl=A.cloneNode(true),cv=[...A.querySelectorAll('canvas')];
+[...cl.querySelectorAll('canvas')].forEach((c,i)=>{const im=document.createElement('img');im.src=cv[i].toDataURL('image/png');im.style.maxWidth='100%';c.replaceWith(im)});
+const so=[...A.querySelectorAll('select')];[...cl.querySelectorAll('select')].forEach((s,i)=>{const b=document.createElement('b');b.textContent=so[i].options[so[i].selectedIndex]?so[i].options[so[i].selectedIndex].text:'';s.replaceWith(b)});
+cl.querySelectorAll('button').forEach(b=>b.remove());cl.querySelectorAll('.mn').forEach(m=>{m.querySelector('textarea').remove();m.querySelector('.pt').style.display='block'});
+const st=[...document.querySelectorAll('style')].map(s=>s.textContent).join('')+':root,:root:not([data-theme="light"]),:root[data-theme="dark"]{--bg:#fff;--card:#fff;--ink:#000;--muted:#444;--accent:#1f4fd8;--line:#ccc;color-scheme:light}#app,#ph{display:block}.top{display:none}.grid{grid-template-columns:1fr 1fr}.mn .pt{display:block;min-height:70px;border:1px solid #999;border-radius:6px;padding:6px;white-space:pre-wrap;margin-top:4px}@media print{.bar{display:none}}';
+const html='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport d’analyse</title><style>'+st+'</style></head><body><main><div class="bar"><button onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button></div><div id="ph"><h1>📊 Rapport d’analyse de données</h1><div class="sub">'+hdr()+'</div></div>'+cl.outerHTML+'</main></body></html>';
+rcol();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='rapport-analyse.html';document.body.appendChild(a);a.click();a.remove();msg('Rapport exporté : ouvre le fichier rapport-analyse.html dans ton navigateur puis imprime-le ou enregistre-le en PDF. Tes interprétations y sont incluses.')};
+</script>
+</body>
+</html>
