@@ -1,0 +1,148 @@
+{
+  "tableau_test": [
+    {
+      "Modèle": "Simple : LSTAT",
+      "Nb variables": 1,
+      "R2 train": 0.515,
+      "R2 test": 0.5514,
+      "MSE test": 32.8976,
+      "RMSE test": 5.7356,
+      "MAE test": 4.0814,
+      "MAPE (%) test": 20.2014
+    },
+    {
+      "Modèle": "Simple : RM",
+      "Nb variables": 1,
+      "R2 train": 0.5051,
+      "R2 test": 0.3708,
+      "MSE test": 46.1448,
+      "RMSE test": 6.793,
+      "MAE test": 4.4783,
+      "MAPE (%) test": 25.2092
+    },
+    {
+      "Modèle": "Multiple : modèle du TP",
+      "Nb variables": 13,
+      "R2 train": 0.7427,
+      "R2 test": 0.6593,
+      "MSE test": 24.9834,
+      "RMSE test": 4.9983,
+      "MAE test": 3.1476,
+      "MAPE (%) test": 16.5326
+    },
+    {
+      "Modèle": "Multiple : modèle corrigé",
+      "Nb variables": 9,
+      "R2 train": 0.7215,
+      "R2 test": 0.6612,
+      "MSE test": 24.8434,
+      "RMSE test": 4.9843,
+      "MAE test": 3.21,
+      "MAPE (%) test": 16.806
+    },
+    {
+      "Modèle": "Multiple : modèle amélioré",
+      "Nb variables": 10,
+      "R2 train": 0.8078,
+      "R2 test": 0.7869,
+      "MSE test": 15.6299,
+      "RMSE test": 3.9535,
+      "MAE test": 2.3658,
+      "MAPE (%) test": 11.8855
+    }
+  ],
+  "validation_croisee": [
+    {
+      "Modèle": "Simple : LSTAT",
+      "R2 CV": "0.512 ± 0.052",
+      "RMSE CV (k$)": "6.36 ± 0.48"
+    },
+    {
+      "Modèle": "Simple : RM",
+      "R2 CV": "0.473 ± 0.073",
+      "RMSE CV (k$)": "6.60 ± 0.53"
+    },
+    {
+      "Modèle": "Multiple : modèle du TP",
+      "R2 CV": "0.708 ± 0.037",
+      "RMSE CV (k$)": "4.91 ± 0.25"
+    },
+    {
+      "Modèle": "Multiple : modèle corrigé",
+      "R2 CV": "0.692 ± 0.028",
+      "RMSE CV (k$)": "5.05 ± 0.26"
+    },
+    {
+      "Modèle": "Multiple : modèle amélioré",
+      "R2 CV": "0.786 ± 0.054",
+      "RMSE CV (k$)": "4.18 ± 0.55"
+    }
+  ],
+  "diagnostics": [
+    {
+      "Modèle": "Modèle du TP",
+      "Shapiro-Wilk p": 0.0,
+      "Breusch-Pagan p": 0.0,
+      "Asymétrie résidus": 1.430762,
+      "Écart-type résidus": 4.733422
+    },
+    {
+      "Modèle": "Modèle corrigé",
+      "Shapiro-Wilk p": 0.0,
+      "Breusch-Pagan p": 0.0,
+      "Asymétrie résidus": 1.34922,
+      "Écart-type résidus": 4.925271
+    },
+    {
+      "Modèle": "Modèle amélioré",
+      "Shapiro-Wilk p": 0.0,
+      "Breusch-Pagan p": 0.0,
+      "Asymétrie résidus": 0.627009,
+      "Écart-type résidus": 4.091198
+    }
+  ],
+  "coefficients_final_HC3": {
+    "const": 133.4902,
+    "log_CRIM": -2.2309,
+    "ZN": -0.0008,
+    "CHAS": 3.0183,
+    "NOX": -13.8404,
+    "RM": -24.487,
+    "RM2": 2.1617,
+    "DIS": -0.9908,
+    "RAD": 0.1446,
+    "PTRATIO": -0.7413,
+    "log_LSTAT": -7.6817
+  },
+  "pvalues_final_HC3": {
+    "const": 0.0,
+    "log_CRIM": 0.000553,
+    "ZN": 0.940064,
+    "CHAS": 0.062361,
+    "NOX": 0.000189,
+    "RM": 0.000102,
+    "RM2": 2.9e-05,
+    "DIS": 9e-06,
+    "RAD": 0.048149,
+    "PTRATIO": 0.0,
+    "log_LSTAT": 0.0
+  },
+  "coef_standardises": {
+    "log_LSTAT": -0.4837,
+    "log_CRIM": -0.2385,
+    "DIS": -0.2263,
+    "PTRATIO": -0.177,
+    "NOX": -0.1746,
+    "ZN": -0.002,
+    "CHAS": 0.0822,
+    "RAD": 0.1331,
+    "RM (+RM²)": 0.2143
+  },
+  "variante_log_MEDV": {
+    "R2": 0.7513,
+    "MSE": 18.2386,
+    "RMSE": 4.2707,
+    "MAE": 2.4338,
+    "MAPE (%)": 12.4227
+  }
+}
